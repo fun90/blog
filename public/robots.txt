@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://fun90.com/sitemap-index.xml

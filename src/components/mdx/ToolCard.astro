@@ -1,0 +1,40 @@
+---
+interface Props {
+  name: string;
+  description: string;
+  url: string;
+  tag?: string;
+  pricing?: string;
+}
+
+const { name, description, url, tag, pricing } = Astro.props;
+---
+
+<a
+  href={url}
+  target="_blank"
+  rel="noopener noreferrer sponsored"
+  class="not-prose group my-5 flex flex-col justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 transition-all hover:border-sky-500/50 hover:bg-white sm:flex-row sm:items-center dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-sky-400/50 dark:hover:bg-zinc-900"
+>
+  <div class="space-y-1">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="font-semibold text-zinc-900 transition-colors group-hover:text-sky-600 dark:text-zinc-100 dark:group-hover:text-sky-400">
+        {name}
+      </span>
+      {tag && (
+        <span class="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
+          {tag}
+        </span>
+      )}
+      {pricing && (
+        <span class="rounded-full bg-zinc-200/80 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+          {pricing}
+        </span>
+      )}
+    </div>
+    <p class="text-sm text-zinc-600 dark:text-zinc-400">{description}</p>
+  </div>
+  <span class="shrink-0 text-sm font-medium text-sky-600 transition-transform group-hover:translate-x-0.5 dark:text-sky-400">
+    访问官网 ↗
+  </span>
+</a>

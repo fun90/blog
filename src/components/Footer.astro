@@ -1,0 +1,25 @@
+---
+import { SITE } from '../config';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-zinc-200/80 py-8 text-sm text-zinc-500 dark:border-zinc-800/80 dark:text-zinc-400">
+  <div class="mx-auto flex max-w-4xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6">
+    <p>© {year} {SITE.author}. Built with Astro & deployed on Cloudflare Pages.</p>
+    <div class="flex items-center gap-5">
+      <a href="/tools" class="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
+        工具精选
+      </a>
+      <a href={SITE.twitterUrl} target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
+        X / Twitter
+      </a>
+      <a href={SITE.githubUrl} target="_blank" rel="noopener noreferrer" class="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
+        GitHub
+      </a>
+      <a href="/rss.xml" class="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
+        RSS
+      </a>
+    </div>
+  </div>
+</footer>

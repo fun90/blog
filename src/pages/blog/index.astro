@@ -1,0 +1,77 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { getPublishedPosts } from '../../utils/posts';
+
+const posts = await getPublishedPosts();
+const categories = ['全部', '工具经验', '软件开发', 'AI 工作流', '折腾笔记'];
+---
+
+<BaseLayout title="文章" description="软件开发实战经验、工具评测与 AI 提效工作流文章归档。">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-zinc-950 dark:text-white">文章归档</h1>
+    <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+      共 {posts.length} 篇文章，涵盖工具使用经验、软件开发工程实践与折腾记录。
+    </p>
+  </div>
+
+  <!-- Category filter -->
+  <div class="mb-6 flex flex-wrap gap-2" id="category-filters">
+    {
+      categories.map((cat, idx) => (
+        <button
+          type="button"
+          data-category={cat}
+          class:list={[
+            'filter-btn cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+            idx === 0
+              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-950'
+              : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
+          ]}
+        >
+          {cat}
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="grid gap-4" id="posts-list">
+    {
+      posts.map((post) => (
+        <div class="post-item" data-category={post.data.category}>
+          <PostCard post={post} />
+        </div>
+      ))
+    }
+  </div>
+
+  <p id="empty-state" class="hidden py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
+    该分类下暂时还没有文章。
+  </p>
+</BaseLayout>
+
+<script is:inline>
+  const buttons = document.querySelectorAll('.filter-btn');
+  const items = document.querySelectorAll('.post-item');
+  const emptyState = document.getElementById('empty-state');
+
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-category');
+      buttons.forEach((b) => {
+        b.className =
+          'filter-btn cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700';
+      });
+      btn.className =
+        'filter-btn cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors bg-zinc-900 text-white dark:bg-white dark:text-zinc-950';
+
+      let visible = 0;
+      items.forEach((item) => {
+        const match = target === '全部' || item.getAttribute('data-category') === target;
+        item.classList.toggle('hidden', !match);
+        if (match) visible++;
+      });
+      emptyState?.classList.toggle('hidden', visible > 0);
+    });
+  });
+</script>

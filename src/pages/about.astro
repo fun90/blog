@@ -1,0 +1,33 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config';
+---
+
+<BaseLayout title="关于" description={`关于 ${SITE.author} 与 ${SITE.title}`}>
+  <div class="prose prose-zinc max-w-none dark:prose-invert">
+    <h1>关于我</h1>
+    <p>
+      你好，我是 <strong>{SITE.author}</strong>，一名关注 AI Agent 实战、效率工具与软件开发的工程师。
+    </p>
+
+    <h2>这里会分享什么？</h2>
+    <ul>
+      <li><strong>Agent 与开发实战</strong>：围绕终端 Coding Agent、多模型协作与工程效率的真实实践。</li>
+      <li><strong>工具精选</strong>：按场景筛选的实用在线工具、下载解析与站长检测站点。</li>
+      <li><strong>长期沉淀</strong>：把日常踩坑与高频工作流整理成结构化笔记。</li>
+    </ul>
+
+    <h2>联系方式与订阅</h2>
+    <ul>
+      <li>
+        X (Twitter)：<a href={SITE.twitterUrl} target="_blank" rel="noopener noreferrer">{SITE.twitterHandle}</a>
+      </li>
+      <li>
+        GitHub：<a href={SITE.githubUrl} target="_blank" rel="noopener noreferrer">{SITE.githubUrl}</a>
+      </li>
+      <li>
+        RSS 订阅：<a href="/rss.xml">/rss.xml</a>
+      </li>
+    </ul>
+  </div>
+</BaseLayout>

@@ -1,0 +1,64 @@
+---
+title: 'Agent 实战（一）：Pi + Magpie，3 个月打磨出的终端编码工作流'
+description: '折腾三个月后留下的极简终端 Agent 组合：一图看懂 Pi 与 Magpie 的分工，附上精选高性价比扩展清单与 Magpie 高频用法速览。'
+pubDate: 2026-11-24
+category: 'AI 工作流'
+tags: ['Pi', 'Magpie', 'Coding Agent', 'AI 工作流']
+featured: true
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import ToolCard from '../../components/mdx/ToolCard.astro';
+import PiMagpieDiagram from '../../components/mdx/PiMagpieDiagram.astro';
+
+过去三个月把日常开发切到终端 Agent 后，我最终收敛出一套非常轻量的主力组合：**Pi + Magpie**。
+
+核心原则只有一条：**Pi 保持极简，只靠少数精选扩展撑起终端编码；Magpie 负责背后的多模型调度与高频协作能力**。
+
+<PiMagpieDiagram />
+
+## 一、Pi：极简内核 + 3 个月精选扩展
+
+Pi（`pi-coding-agent`）本身只保留读、写、改、执行命令等核心能力，其余全部交给 TypeScript 扩展。装了又删三个月后，真正每天都在用的只剩下面这几项：
+
+| 分类 | 扩展 | 解决的痛点 | 定位 |
+| :--- | :--- | :--- | :--- |
+| 交互体验 | `pi-cc-extensions` | 紧凑 TUI、分栏 diff、长输出折叠 | **必装** · 不刷屏 |
+| 交互体验 | `@juicesharp/rpiv-ask-user-question` | 歧义时弹窗选选项，减少瞎猜返工 | **必装** · 防跑偏 |
+| 交互体验 | `@pi-archimedes/session-name` | 自动命名会话，方便回溯历史记录 | **推荐** · 省心 |
+| 检索联动 | `@ff-labs/pi-fff` | FFF 极速模糊搜文件与内容 | **必装** · 提速 |
+| 检索联动 | `pi-agent-browser-native` | 原生浏览器自动化，改完页面直接自检 | **按需** · 前端利器 |
+| 检索联动 | `pi-mcp-adapter` | 替代内置 MCP，按需挂载外部工具 | **推荐** · 生态入口 |
+| 协作控本 | `pi-advisor-flow` | 快模型日常执行，强模型关键节点把关 | **核心** · 省钱稳 |
+| 协作控本 | `pi-agents` | 命名子代理并行，隔离搜索噪音 | **进阶** · 拆任务 |
+| 省 Token | `on-demand-tools` / `rtk` | 重型工具按需加载 + 命令输出瘦身 | **进阶** · 控上下文 |
+
+<ToolCard
+  name="pi-advisor-flow"
+  description="Executor / Advisor 双模型协作流：日常步骤用高性价比快模型跑，规划、卡壳与验收阶段自动请强模型把关。"
+  url="https://github.com/philipbrembeck/pi-advisor"
+  tag="核心推荐"
+  pricing="开源"
+/>
+
+<Callout type="tip" title="两条最值回票价的实战经验">
+  1. <strong>双模型分层</strong>：用 `pi-advisor-flow` 把日常体力活交给快模型，只在「定方案」「卡壳 3 轮」「最终验收」请出强模型，成本直降且成功率更高。<br />
+  2. <strong>上下文减负</strong>：浏览器、子代理等重型工具平时用 `on-demand-tools` 收起，用时再唤醒，配合 `rtk` 精简命令输出，长会话不容易退化。
+</Callout>
+
+## 二、Magpie：功能很全，日常用好这 4 块就够
+
+Magpie 是一套能力非常完整的工作台中枢，但日常写代码最高频、最顺手的其实是下面四项：
+
+| 高频能力 | 日常怎么用 | 核心收益 |
+| :--- | :--- | :--- |
+| **多模型路由组** | 按用途分主力执行组、把关组、兜底组 | Pi 对准固定入口，限流与切换无感 |
+| **全局 `AGENTS.md`** | 统一托管语言、隐私红线与 Git 提交规范 | 跨项目自动生效，不用每次重复交代 |
+| **Artifact 与内置浏览器** | 长方案直出结构化文档，网页直接预览验收 | 告别终端纯文本刷屏，对照更直观 |
+| **生图与定时自动化** | 工作流内顺手出配图，定时跑巡检或整理 | 高频周边需求不切工具，一次闭环 |
+
+## 小结
+
+**Pi 管终端里的极速执行，Magpie 管全局调度与周边能力**——两层解耦之后，换模型、增删扩展都不会伤筋动骨。
+
+下一篇会单独拆解 **`pi-advisor-flow` 的双模型把关策略** 与 **终端 Agent 的上下文控本实战**。

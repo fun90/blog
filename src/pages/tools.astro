@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { TOOL_CATEGORIES, TOOLS } from '../data/tools';
+---
+
+<BaseLayout title="工具精选" description="日常高频使用的软件开发、AI 与效率工具精选及实战评价。">
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold tracking-tight text-zinc-950 dark:text-white">常用工具精选</h1>
+    <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+      按日常使用场景整理的高频在线工具、资源下载与站长实用站点。
+    </p>
+  </div>
+
+  <!-- Category filter -->
+  <div class="mb-6 flex flex-wrap gap-2">
+    {
+      TOOL_CATEGORIES.map((cat, idx) => (
+        <button
+          type="button"
+          data-tool-cat={cat}
+          class:list={[
+            'tool-filter-btn cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+            idx === 0
+              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-950'
+              : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
+          ]}
+        >
+          {cat}
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    {
+      TOOLS.map((tool) => (
+        <div
+          class="tool-card flex flex-col justify-between rounded-2xl border border-zinc-200/80 bg-white p-5 transition-all hover:border-sky-500/40 dark:border-zinc-800/80 dark:bg-zinc-900/40 dark:hover:border-sky-400/40"
+          data-tool-cat={tool.category}
+        >
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">{tool.name}</h2>
+              <span class="shrink-0 rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                {tool.pricing}
+              </span>
+            </div>
+            <p class="mt-1 text-xs font-medium text-sky-600 dark:text-sky-400">{tool.tagline}</p>
+            <p class="mt-2.5 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{tool.description}</p>
+          </div>
+
+          <div class="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3.5 text-xs dark:border-zinc-800/80">
+            <div class="flex flex-wrap gap-1.5">
+              {tool.tags.map((tag) => (
+                <span class="rounded-md bg-zinc-100 px-2 py-0.5 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                  {tag}
+                </span>
+              ))}
+            </div>
+            <div class="flex items-center gap-3 font-medium">
+              {tool.articleSlug && (
+                <a href={`/blog/${tool.articleSlug}`} class="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                  心得
+                </a>
+              )}
+              <a
+                href={tool.url}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                class="text-sky-600 hover:text-sky-500 dark:text-sky-400"
+              >
+                访问 ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  const btns = document.querySelectorAll('.tool-filter-btn');
+  const cards = document.querySelectorAll('.tool-card');
+
+  btns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const cat = btn.getAttribute('data-tool-cat');
+      btns.forEach((b) => {
+        b.className =
+          'tool-filter-btn cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700';
+      });
+      btn.className =
+        'tool-filter-btn cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors bg-zinc-900 text-white dark:bg-white dark:text-zinc-950';
+
+      cards.forEach((card) => {
+        const match = cat === '全部' || card.getAttribute('data-tool-cat') === cat;
+        card.classList.toggle('hidden', !match);
+      });
+    });
+  });
+</script>
