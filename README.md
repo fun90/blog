@@ -45,6 +45,6 @@ draft: false
 2. 登录 Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**。
 3. 构建配置填写：
    - **Framework preset**: `Astro`
-   - **Build command**: `pnpm build`
+   - **Build command**: `pnpm check && pnpm build`
    - **Build output directory**: `dist`
 4. 在 **Custom domains** 中绑定你的域名即可自动签发 HTTPS 证书并上线。

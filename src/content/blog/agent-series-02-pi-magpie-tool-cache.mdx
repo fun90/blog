@@ -1,0 +1,87 @@
+---
+title: 'Agent 实战（二）：Pi 经 Magpie 加载工具，怎样保住提示缓存'
+description: '拆开 Pi 到 Magpie、Magpie 到模型的两段协议，用真实请求验证 Codex 加载新工具时的缓存命中，并把配置补写交给 Magpie 插件。'
+pubDate: 2026-11-28
+category: 'AI 工作流'
+tags: ['Pi', 'Magpie', 'Codex', '提示缓存']
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Pi 的 `tool_search` 可以把工具留到需要时再加载。加载之后，模型能否继续复用已经缓存的上下文，还要看 Pi 怎么声明新工具，以及 Magpie 怎么把请求发给上游。
+
+我用 Pi 1.6 经 Magpie 做了对照。单把协议设成 `openai-responses` 时，两次加载工具后的缓存读取都是 0。给直接选用的 Codex 模型同时打开两个兼容开关后，两次都复用了 14,080 个 token。
+
+## 按需加载省了哪部分 token
+
+| 发生的事 | 对输入的影响 |
+| :--- | :--- |
+| Pi 通过 `tool_search` 找到并加载延迟暴露的工具 | 用到之前，请求里省去这些工具的描述和参数定义 |
+| Pi 将新工具并入请求顶层的 `tools` | 工具列表变了，已经缓存的前缀可能失效 |
+| Pi 在会话历史中追加工具声明 | 上游如果接受这种写法，原有前缀有机会继续命中缓存 |
+
+前一项由 Pi 的工具暴露方式决定。已经直接暴露给模型的工具，依然会随请求发送。后两项是加载发生之后的区别，主要影响**缓存读取量和未缓存输入量**。同一份上下文仍可能随请求发出，账单如何变化取决于上游的缓存计价。
+
+## Magpie 前后各用什么协议
+
+`magpie pi protocol` 决定 Pi 发给网关的请求格式。Magpie 根据实际命中的模型和供应商决定怎么请求上游。把这个设置留空时，Pi 按生成的模型条目读取 `api`，没有单独声明的条目继承 provider 的 `api`。
+
+| 实测上游 | Pi → Magpie | Magpie → 上游 |
+| :--- | :--- | :--- |
+| `codex/gpt-6.1-terra` | `/v1/responses` | `/v1/responses` |
+| `claude/claude-sonnet-5-5` | `/v1/responses` | `/v1/messages` |
+
+同样的 Responses 请求到了 Claude 路径，还要经过协议转换。我用手工构造的 `tool_search_call` 和 `tool_search_output` 做了三次对照，新工具都能调用，加载后的三次请求各只读到约 1,700 个缓存 token。工具列表保持不变的两次对照请求各读到约 12,100 个。这次验证只覆盖了这个 Claude 模型和这条转换路径。
+
+## 两个开关一起开
+
+我用本地模拟服务器捕获了 Pi 发出的请求。只开 `supportsToolSearch`，Pi 仍把新工具放进顶层 `tools`。加上 `supportsMidConvoSystemMessages` 后，Pi 在工具加载对应的会话位置插入 `tool_search_call` 和 `tool_search_output`。
+
+再用隔离的 Pi 配置，通过实际运行的 Magpie 请求 `codex/gpt-6.1-terra`。两组都用 `openai-responses`，每次让 Pi 搜索并调用一个测试工具，记录加载后紧接着那次请求的用量。
+
+| Pi 配置 | 两轮未缓存输入 token | 两轮缓存读取 token |
+| :--- | :--- | :--- |
+| 两个兼容开关均未启用 | 14,324 / 14,325 | 0 / 0 |
+| `supportsToolSearch` + `supportsMidConvoSystemMessages` | 394 / 393 | 14,080 / 14,080 |
+
+我也试了 `supportsAdditionalTools` 搭配 `supportsMidConvoSystemMessages`。加载后的请求两次都命中缓存，其中一轮的下一次请求缓存读取又降为 0。样本只有两轮，日常配置采用表现一致的 `supportsToolSearch` 组合。
+
+## 把配置留在 `modelOverrides`
+
+Magpie 会重写 `models.json` 中的模型列表。我试着把开关写进 `models[]`，切换协议后就被清掉。写在 `providers.magpie.modelOverrides` 下，同样触发两次重写，开关都保留了，Pi 也确实按覆盖项生成了请求。
+
+下面是合并到 `providers.magpie` 的片段。模型 ID 用当前 `models.json` 里实际存在的条目，限有效 `api` 为 `openai-responses` 的 `codex/*` 模型。
+
+```json
+{
+  "modelOverrides": {
+    "codex/gpt-6.1-terra": {
+      "compat": {
+        "supportsToolSearch": true,
+        "supportsMidConvoSystemMessages": true
+      }
+    }
+  }
+}
+```
+
+<Callout type="tip" title="路由组有自己的模型条目">
+  Pi 选中 <code>group/*</code> 时，读取的是组自己的协议和兼容开关。即使 Magpie 这次选到了 Codex，单独给 <code>codex/*</code> 写的覆盖项也不会应用到组请求。
+</Callout>
+
+## 用 Magpie 插件自动补齐
+
+撰文时，Magpie 还没有暴露写这两个 Pi 开关的设置。我写了一个本地异步钩子 `pi-codex-compat.hooks.mjs`，把同一段配置逻辑放进 Magpie 插件宿主。插件加载或收到请求时会检查配置，宿主存活时也会轮询文件变化。它按实际生效的 `api` 筛选 `codex/*`，只在两个键缺失时补写，已有的 `false` 会保留。协议切走时，它会清理这两个键上的 `true`，包括手工加上的值。
+
+**附件下载**：<a href="/downloads/pi-codex-compat.hooks.mjs" download>pi-codex-compat.hooks.mjs</a>
+
+把文件放到一个固定目录，在该目录执行以下命令。Magpie 会引用本地文件，安装后不要移动或删除它。
+
+```sh
+magpie plugin add ./pi-codex-compat.hooks.mjs
+pi --list-models codex
+```
+
+安装后，我在本机删除了覆盖项，约 1.5 秒后两个开关自动补回。接着用 Magpie 切换协议触发重写，切回默认协议后，三个 Codex 条目里都能读到两个 `true`。已有 Pi 会话可以重新打开 `/model` 加载配置，再直接选择 Codex 模型。插件安装和补写只在 macOS 上验证，缓存用量的对照使用的是此前写入的同一组配置。
+
+实现上，插件只读写本地模型配置。异步钩子能修改请求的范围及安装格式，可查阅 Magpie 的钩子文档。[Magpie 异步网关钩子](https://github.com/yetone/magpie/blob/main/docs/subsystems/gateway-request-hooks.md)

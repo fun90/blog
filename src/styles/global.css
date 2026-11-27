@@ -34,7 +34,7 @@ html.dark .astro-code span {
 }
 
 .prose pre {
-  @apply relative rounded-xl border border-zinc-200 dark:border-zinc-800;
+  @apply relative rounded-xl border border-zinc-200 pr-20 dark:border-zinc-800;
 }
 
 .prose :not(pre) > code {

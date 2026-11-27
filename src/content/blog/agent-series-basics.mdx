@@ -1,0 +1,100 @@
+---
+title: 'Agent 实战基础篇：从打开项目到理解指令和技能'
+description: 'Windows / macOS 打开项目与只读验证，一图看懂全局与项目指令、技能的加载时机。'
+pubDate: 2026-11-23
+category: 'AI 工作流'
+tags: ['Coding Agent', 'AGENTS.md', 'Skills', '入门']
+---
+
+import AgentBasicsDiagram from '../../components/mdx/AgentBasicsDiagram.astro';
+
+Coding Agent 能直接读取项目文件、修改代码并执行终端命令。第一次上手，只需做好两件事：**在正确的项目根目录启动它，并用一条只读请求确认打开成功**；之后再弄清全局与项目配置何时加载，就能稳妥进入日常开发。
+
+## 一、完成第一次操作：打开项目并做只读验证
+
+**项目根目录**是直接装着 `README.md`、`src/` 或 `package.json` 的那一层（下称 `my-app/`）。
+
+<AgentBasicsDiagram kind="open" />
+
+### 进入项目并启动
+
+| 系统 | 打开终端并进入项目（以下载目录中的 `my-app` 为例） |
+| :--- | :--- |
+| **Windows（PowerShell）** | 按 `Win + X` 选 **Windows PowerShell**（确认提示符带 `PS`）：`cd "$HOME\Downloads\my-app"` |
+| **macOS（终端）** | 按 `Cmd + Space` 搜索 **Terminal** 打开：`cd ~/Downloads/my-app` |
+
+确认路径与文件都对准 `my-app/` 后，运行对应启动命令（刚装完若提示找不到命令，重开一个终端窗口再试）：
+
+| 工具 | 启动命令 | 首次启动准备 |
+| :--- | :--- | :--- |
+| **Claude Code** | `claude` | 按浏览器提示登录（需付费订阅或 API 账户，免费 `claude.ai` 账号不可用，见 [Setup](https://code.claude.com/docs/en/setup)） |
+| **Codex CLI** | `codex` | 按提示选择 Sign in with ChatGPT 或其他登录方式（见 [Codex CLI](https://learn.chatgpt.com/docs/codex/cli)） |
+| **Pi** | `pi` | 进会话后先运行 `/login` 选择模型提供方（见 [Quickstart](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md)） |
+
+### 发一条只读请求确认打开成功
+
+```text
+告诉我你当前工作的完整文件夹路径，只读一下根目录里的 README.md，用一句话概括这个项目。不要修改任何文件，也不要运行会改动文件的命令。
+```
+
+返回的路径指向 `my-app` 且概括内容与 `README.md` 一致即算成功（没有 `README.md` 就换成根目录里任意可见的文本文件）；路径不对就关掉当前会话，切回正确目录重开。
+
+## 二、一图看懂：全局与项目范围、加载时机
+
+日常使用 Coding Agent，最常打交道的两类配置是**指令**（长期生效的通用约定）和**技能**（Skills，把可重复的多步流程打包成目录里的 `SKILL.md`）。它们各自按「全局 / 项目」分范围，并按「启动时 / 触发时」分阶段进入模型上下文：
+
+<AgentBasicsDiagram />
+
+**上下文**是模型单次回答能看到的总信息量，包含对话、读过的文件和已加载的配置。正因为指令正文每次启动都会整份载入，高频通用规则要写短（Claude Code 官方建议单份 `CLAUDE.md` 控制在 200 行以内，见 [Claude Code Memory](https://code.claude.com/docs/en/memory)）；低频或长步骤放进技能，启动时只占一条简介（Codex 默认将初始技能列表限制在上下文窗口的 2%，窗口大小未知时回退为 8,000 字符，见 [Codex Build skills](https://learn.chatgpt.com/docs/build-skills)），触发后才读取 `SKILL.md` 正文。
+
+## 三、默认目录与优先级速查
+
+下表中 `~` 表示用户主目录（Windows PowerShell 中对应 `$HOME`），不带 `~` 的项目路径均从项目根目录算起。
+
+### 默认指令目录
+
+| 工具 | 全局指令（跨项目） | 项目指令（随仓库共享） | 官方文档 |
+| :--- | :--- | :--- | :--- |
+| **Claude Code** | `~/.claude/CLAUDE.md` | `./CLAUDE.md` 或 `./.claude/CLAUDE.md` | [Claude Code Memory](https://code.claude.com/docs/en/memory) |
+| **Codex** | `~/.codex/AGENTS.md` | `AGENTS.md` | [Codex AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) |
+| **Pi** | `~/.pi/agent/AGENTS.md` | `AGENTS.md` | [Pi Configuration](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/configuration.md) |
+
+### 默认技能目录
+
+每个技能是一个独立子目录，里面放 `SKILL.md`（可附带 `scripts/`、`references/` 等资源）：
+
+| 工具 | 全局技能目录 | 项目技能目录 | 官方文档 |
+| :--- | :--- | :--- | :--- |
+| **Claude Code** | `~/.claude/skills/<技能名>/SKILL.md` | `.claude/skills/<技能名>/SKILL.md` | [Claude Code Skills](https://code.claude.com/docs/en/skills) |
+| **Codex** | `~/.agents/skills/<技能名>/SKILL.md` | `.agents/skills/<技能名>/SKILL.md` | [Codex Build skills](https://learn.chatgpt.com/docs/build-skills) |
+| **Pi** | `~/.pi/agent/skills/` 或 `~/.agents/skills/` | `.pi/skills/` 或 `.agents/skills/` | [Pi Skills](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md) |
+
+以使用 Codex 或 Pi 的项目为例，常见目录结构如下：
+
+```text
+my-app/
+├── README.md
+├── src/
+├── AGENTS.md
+└── .agents/
+    └── skills/
+        └── release-check/
+            └── SKILL.md
+```
+
+### 冲突时的优先级规则
+
+| 工具 | 多份指令冲突时怎么处理 | 同名技能冲突时怎么处理 | 官方出处 |
+| :--- | :--- | :--- | :--- |
+| **Claude Code** | 按「托管策略 → 全局 → 上级目录 → 当前目录（`CLAUDE.md` 后接 `CLAUDE.local.md`）」拼接进上下文，并非硬覆盖，冲突时模型可能任选其一 | 按 **企业 > 个人（全局）> 项目** 取胜；个人与项目同名时运行个人技能 | [Memory](https://code.claude.com/docs/en/memory) · [Skills](https://code.claude.com/docs/en/skills) |
+| **Codex** | 按「全局 → 仓库根目录 → 当前工作目录」拼接，越靠近当前目录越优先；同目录存在 `AGENTS.override.md` 时替代 `AGENTS.md` | 不合并同名技能，两者可同时出现在选择器中 | [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) · [Build skills](https://learn.chatgpt.com/docs/build-skills) |
+| **Pi** | 同时加载全局、当前目录及上级目录的上下文文件；同目录 `AGENTS.override.md` 替代同目录 `AGENTS.md`/`CLAUDE.md` | 保留最先发现的技能并输出警告 | [Configuration](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/configuration.md) · [Skills](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/skills.md) |
+
+### 几个容易踩坑的官方例外
+
+- **Claude Code 读取 `AGENTS.md`**：自 `v2.1.277` 起，若当前目录及上级目录不存在 `CLAUDE.md`、`.claude/CLAUDE.md` 或 `CLAUDE.local.md`，默认自动改读 `./AGENTS.md`；需要调整行为或配置个人私有 `./CLAUDE.local.md` 见 [Claude Code Memory](https://code.claude.com/docs/en/memory)。
+- **Claude Code 技能目录**：官方默认扫描路径不包含 `.agents/skills/`；若要跨工具复用，可将具体技能目录软链到 `.claude/skills/<技能名>`（详见 [Claude Code Skills](https://code.claude.com/docs/en/skills)）。
+- **Codex 合并上限与自定义主目录**：单次合并指令默认上限 `32 KiB`（`project_doc_max_bytes`），全局目录可通过 `CODEX_HOME` 修改（详见 [Codex AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)）。
+- **Pi 项目信任机制**：项目 `.pi/` 目录下的配置与技能，以及项目 `.agents/skills/` 下的技能需先授予项目信任才会加载（上下文指令文件不受此限），全局目录可通过 `PI_CODING_AGENT_DIR` 修改（详见 [Pi Security](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/security.md) · [Pi Configuration](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/configuration.md)）。
+
+完成这一步，你已经能在任意项目里稳妥启动 Agent 并管好指令与技能。继续阅读 [Agent 实战（一）：Pi + Magpie，3 个月打磨出的终端编码工作流](/blog/agent-series-01-pi-and-magpie)。

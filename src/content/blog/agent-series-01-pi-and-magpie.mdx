@@ -23,15 +23,21 @@ Pi（`pi-coding-agent`）本身只保留读、写、改、执行命令等核心�
 
 | 分类 | 扩展 | 解决的痛点 | 定位 |
 | :--- | :--- | :--- | :--- |
-| 交互体验 | `pi-cc-extensions` | 紧凑 TUI、分栏 diff、长输出折叠 | **必装** · 不刷屏 |
+| 交互体验 | `pi-cc-extensions` | 紧凑 TUI、分栏 diff、长输出折叠 | **终端必装** · ACP 免装 |
 | 交互体验 | `@juicesharp/rpiv-ask-user-question` | 歧义时弹窗选选项，减少瞎猜返工 | **必装** · 防跑偏 |
 | 交互体验 | `@pi-archimedes/session-name` | 自动命名会话，方便回溯历史记录 | **推荐** · 省心 |
 | 检索联动 | `@ff-labs/pi-fff` | FFF 极速模糊搜文件与内容 | **必装** · 提速 |
 | 检索联动 | `pi-agent-browser-native` | 原生浏览器自动化，改完页面直接自检 | **按需** · 前端利器 |
 | 检索联动 | `pi-mcp-adapter` | 替代内置 MCP，按需挂载外部工具 | **推荐** · 生态入口 |
+| 协作控本 | `@maxiaochao/pi-background-tasks` | 长命令丢到后台跑，结束后自动通知 Agent | **推荐** · 不干等 |
 | 协作控本 | `pi-advisor-flow` | 快模型日常执行，强模型关键节点把关 | **核心** · 省钱稳 |
 | 协作控本 | `pi-agents` | 命名子代理并行，隔离搜索噪音 | **进阶** · 拆任务 |
-| 省 Token | `on-demand-tools` / `rtk` | 重型工具按需加载 + 命令输出瘦身 | **进阶** · 控上下文 |
+| 省 Token | `on-demand-tools`（本地扩展） | 重型工具按需加载 | **进阶** · 控上下文 |
+| 省 Token | `rtk`（由 Magpie 安装） | 精简 Shell 命令输出 | **进阶** · 控上下文 |
+
+<Callout type="info" title="pi-cc-extensions 看使用方式决定装不装">
+  在终端里直接用 Pi 时需要安装；通过 ACP 接入客户端使用时不需要安装，界面由客户端负责渲染。
+</Callout>
 
 <ToolCard
   name="pi-advisor-flow"
@@ -45,6 +51,57 @@ Pi（`pi-coding-agent`）本身只保留读、写、改、执行命令等核心�
   1. <strong>双模型分层</strong>：用 `pi-advisor-flow` 把日常体力活交给快模型，只在「定方案」「卡壳 3 轮」「最终验收」请出强模型，成本直降且成功率更高。<br />
   2. <strong>上下文减负</strong>：浏览器、子代理等重型工具平时用 `on-demand-tools` 收起，用时再唤醒，配合 `rtk` 精简命令输出，长会话不容易退化。
 </Callout>
+
+### session-name：触发时机与省钱配置
+
+它在 Agent 一轮运行结束时（`agent_end`）后台生成标题，不阻塞界面。
+
+| 情况 | 行为 |
+| :--- | :--- |
+| 会话还没有名字 | 取首条用户消息和首条带文字的回复，各截前 500 字符，生成 3–8 个词的标题 |
+| 已用 `--name` 或 `/name` 命名 | 跳过，手动命名优先 |
+| 临时会话（没有会话文件） | 跳过 |
+| 生成失败 | 之后的轮次重试，累计 3 次后停止 |
+
+不配置时，标题请求走**当前对话模型**。在 `~/.pi/agent/settings.json` 里合并下面这项，改用可用模型中单价最低的一个，我这里是 Haiku：
+
+```json
+{
+  "archimedes.sessionName": {
+    "model": "magpie/claude/claude-haiku-5-5"
+  }
+}
+```
+
+<Callout type="warning" title="模型名写错会静默回退">
+  找不到 <code>model</code> 指定的模型时，扩展会改用当前模型且不提示。先用 <code>pi --list-models haiku</code> 核对名称，写成 <code>provider/id</code> 的完整形式。
+</Callout>
+
+换便宜模型主要省的是费用，单次输入 token 量基本不变（内容本来就有截断）。这次调用也不计入底部状态栏的用量统计。
+
+### on-demand-tools：下载本地扩展
+
+它让浏览器、子代理、MCP 三组工具默认收起，模型需要时调用 `load_tools` 启用。
+
+**附件下载**：<a href="/downloads/on-demand-tools.ts" download>on-demand-tools.ts</a>
+
+放到 `~/.pi/agent/extensions/` 目录后重启 Pi。三组分别对应 `pi-agent-browser-native`、`pi-agents`、`pi-mcp-adapter` 的工具名；工具名写死在文件顶部的 `GROUPS` 中，用别的扩展时需要照着改。
+
+### rtk：在 Magpie 里打开开关
+
+`rtk` 不用手动 `pi install`，安装和接入都在 Magpie 里完成：先装 RTK 本体，打开开关后 Magpie 自动装好 Pi 扩展。入口是 **Library → magpie → RTK**：
+
+1. 本机还没有 RTK 时，先在该页面点击安装。
+2. 在下方 **Agents** 列表打开 **Pi** 开关，Magpie 会调用 RTK 自带的安装器，把扩展写到 `~/.pi/agent/extensions/rtk.ts`。
+3. 重启 Pi 生效。
+
+<img
+  src="/images/agent-series-01/magpie-rtk.webp"
+  alt="Magpie 的 RTK 页面：左侧栏选择 RTK，在 Agents 列表中打开 Pi 开关"
+  width="1600"
+  height="916"
+  loading="lazy"
+/>
 
 ## 二、Magpie：功能很全，日常用好这 4 块就够
 
