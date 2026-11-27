@@ -41,10 +41,9 @@ draft: false
 
 ## 部署到 Cloudflare Pages
 
-1. 将本仓库推送到 GitHub。
-2. 登录 Cloudflare Dashboard → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**。
-3. 构建配置填写：
-   - **Framework preset**: `Astro`
-   - **Build command**: `pnpm check && pnpm build`
-   - **Build output directory**: `dist`
-4. 在 **Custom domains** 中绑定你的域名即可自动签发 HTTPS 证书并上线。
+推送到 `main` 后，GitHub Actions（`.github/workflows/deploy.yml`）会依次执行检查、构建，并将 `dist/` 部署到 Pages 项目 `fun90-blog`。也可以在仓库的 **Actions** 页面手动触发。
+
+依赖两个仓库 Secret：
+
+- `CLOUDFLARE_API_TOKEN`：权限为 **Account → Cloudflare Pages → Edit**。
+- `CLOUDFLARE_ACCOUNT_ID`：Cloudflare 账户 ID。
